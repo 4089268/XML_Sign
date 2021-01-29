@@ -1,12 +1,20 @@
 package pruebasencript;
 
+import XML_Sign.DatosCertificado;
+import XML_Sign.Firma_XML;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;  
-import java.nio.file.Files;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyException;
 import java.security.PrivateKey;
-import org.apache.commons.ssl.PKCS8Key;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Document;
 
 
 
@@ -19,36 +27,43 @@ public class PruebasEncript {
     public static void main(String[] args) throws IOException, GeneralSecurityException{
         System.out.println("Iniciando");
         
-        PruebasEncript.CargarLLaves();            
-    }
-    
-    public static void CargarLLaves() throws IOException, GeneralSecurityException{        
-        System.out.println("Cargando Llaves\n");
+        String xRutaCert = "C:\\Users\\Salvador\\Downloads\\Test_FirmaElectronica\\FIEL_OEMJ730701858_20190729121658\\oemj730701858.cer";
+        String xRutaLLave = "C:\\Users\\Salvador\\Downloads\\Test_FirmaElectronica\\FIEL_OEMJ730701858_20190729121658\\Claveprivada_FIEL_OEMJ730701858_20190729_121658.key";
+        String xPass = "jcom1973";
+        Firma_XML xf = new Firma_XML();
         
-        String ruta = "C:\\Users\\Salvador\\Downloads\\Test_FirmaElectronica\\FIEL_OEMJ730701858_20190729121658\\Claveprivada_FIEL_OEMJ730701858_20190729_121658.key";
-        File file = new File(ruta);
-        byte[] bytesDatos = Files.readAllBytes(file.toPath());        
-        char[] password = "jcom1973".toCharArray();
         
-        FileInputStream xfile = new FileInputStream(ruta);
-        PKCS8Key pkcs8 = new PKCS8Key( xfile, password);
-        PrivateKey pk = pkcs8.getPrivateKey();
-        System.out.println(pk.getFormat());
-        System.out.println(pk.getAlgorithm());
+        //*** Caragar llave privada        
+        PrivateKey pkey = xf.CargarLlavePrivada(xRutaLLave, xPass);        
         
-    }
-    
-    // Synopsis: java GenEnveloped [document] [output]
-    //
-    //    where "document" is the name of a file containing the XML document
-    //    to be signed, and "output" is the name of the file to store the
-    //    signed document. The 2nd argument is optional - if not specified,
-    //    standard output will be used.
-    //
-    public static void FirmarXML(){
-        // Create a DOM XMLSignatureFactory that will be used to generate the
-        // enveloped signature
-        // XMLSignatureFactory fac = XMLSignatureFactory.getInstance("DOM");
+        
+        //*** Cargar certificado y obtener los datos
+        DatosCertificado datos = xf.CargarDatosCetificado(xRutaCert);
+        
+        
+        //*** Generara documento xml
+        String xmlR = xf.XML_Root("Campo1", "Campo2", "Campo 2");
+        
+        
+        //*** Firmar documento xml
+        Document xmlFirmado;
+        try {
+            xmlFirmado = xf.FirmarXML(xmlR, pkey, datos);
+            
+            //*** Guardar el documento en archivo
+            DOMSource source = new DOMSource(xmlFirmado);
+            FileWriter writer = new FileWriter(new File("c:/users/salvador/downloads/xmlFirmado.xml"));
+            StreamResult result = new StreamResult(writer);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer;            
+            transformer = transformerFactory.newTransformer();
+            transformer.transform(source, result);
+        
+        } catch (TransformerConfigurationException ex) {
+            Logger.getLogger(PruebasEncript.class.getName()).log(Level.SEVERE, null, ex);
+        }catch (TransformerException ex) {
+            Logger.getLogger(PruebasEncript.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
     }
     
