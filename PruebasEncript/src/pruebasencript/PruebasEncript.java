@@ -2,6 +2,7 @@ package pruebasencript;
 
 import XML_Sign.DatosCertificado;
 import XML_Sign.Firma_XML;
+import XML_Sign.XMLSign_Resp;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -29,7 +30,7 @@ public class PruebasEncript {
         
         String xRutaCert = "C:\\Users\\Salvador\\Downloads\\Test_FirmaElectronica\\FIEL_OEMJ730701858_20190729121658\\oemj730701858.cer";
         String xRutaLLave = "C:\\Users\\Salvador\\Downloads\\Test_FirmaElectronica\\FIEL_OEMJ730701858_20190729121658\\Claveprivada_FIEL_OEMJ730701858_20190729_121658.key";
-        String xPass = "jcom1973";
+        String xPass = "*******";
         Firma_XML xf = new Firma_XML();
         
         
@@ -47,8 +48,20 @@ public class PruebasEncript {
         
         //*** Firmar documento xml
         Document xmlFirmado;
+        String digestValue = "";
+        String signatureValue = "";
+        
         try {
-            xmlFirmado = xf.FirmarXML(xmlR, pkey, datos);
+            
+            XMLSign_Resp response = xf.FirmarXML(xmlR, pkey, datos);            
+            xmlFirmado =  response.XmlFirmado;
+            digestValue = response.DigestValue;
+            signatureValue = response.SignatureValue;
+            
+            
+            System.out.println("DigestValue: " + digestValue);
+            System.out.println("SignatureValue: " + signatureValue);
+            
             
             //*** Guardar el documento en archivo
             DOMSource source = new DOMSource(xmlFirmado);

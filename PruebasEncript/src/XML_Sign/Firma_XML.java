@@ -5,10 +5,12 @@ import java.security.*;
 import java.security.cert.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import javax.xml.crypto.*;
+import javax.xml.crypto.dom.DOMStructure;
 import javax.xml.crypto.dsig.*;
 import javax.xml.crypto.dsig.keyinfo.*;
 import javax.xml.crypto.dsig.spec.*;
@@ -90,11 +92,13 @@ public class Firma_XML {
      * @param xmldoc Documento xml que se firmara
      * @param privateKey Llave privada que se utilizara para firmar el documento
      * @param datosCert Certificado del cual se obtendran los datos del emisor y la llave publica
-     * @return Documento xml firmado
+     * @return XMLSign_Resp Un objecto el cual incluye el documento firmado, el digest value y el signature value
      */
-    public Document FirmarXML(String xmlDoc, PrivateKey privateKey, DatosCertificado datosCertificado){
+    public XMLSign_Resp FirmarXML(String xmlDoc, PrivateKey privateKey, DatosCertificado datosCertificado){
         //*** Convertir xmlString a documento xml
         Document docXml = convertStringToXMLDocument(xmlDoc);
+        String stringDigestValue = "";
+        String stringSignatureValue = "";
         
         X509Certificate cert = datosCertificado.getCertificate();
             
@@ -125,6 +129,7 @@ public class Firma_XML {
                 xmlSigFactory.newSignatureMethod(SignatureMethod.RSA_SHA1, null),  
                 Collections.singletonList(ref)
             );  
+            
 
             //*** Obtener llave privada del certificado
             PublicKey publicKey = cert.getPublicKey();
@@ -150,35 +155,39 @@ public class Firma_XML {
             //*** Crear el KeyInfo
             KeyInfo kInfo = keyInFact.newKeyInfo( keyInfoItems);
             
-            //*** Crear nodo personalizado "gobmxEsquemaTramitacion"            
-            Element elementSignProp = docXml.createElement("dso:SignatureProperties");
+            
+            //*** Crear nodo personalizado Object "gobmxEsquemaTramitacion"           
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            Document doc = dbf.newDocumentBuilder().newDocument();
+                
+            Element elementSignProp = doc.createElement("dsp:SignatureProperties");
             elementSignProp.setAttribute("xmlns:dsp","http://www.w3.org/2009/xmldsig-properties");
             
-            Element elSignProp1 = docXml.createElement("SignatureProperty");
+            Element elSignProp1 = doc.createElement("SignatureProperty");
             elSignProp1.setAttribute("Id", "identifier");
             elSignProp1.setAttribute("Target", "#DistributorASignature");
-            Element oIdentifier11 = docXml.createElement("Identifier");
+            Element oIdentifier11 = doc.createElement("Identifier");
             oIdentifier11.setTextContent("Acuse");
             elSignProp1.appendChild(oIdentifier11);
                         
-            Element elSignProp2 = docXml.createElement("SignatureProperty");
+            Element elSignProp2 = doc.createElement("SignatureProperty");
             elSignProp2.setAttribute("Id", "created");
             elSignProp2.setAttribute("Target", "#DistributorASignature");
-            Element oIdentifier21 = docXml.createElement("Created");
+            Element oIdentifier21 = doc.createElement("Created");
             oIdentifier21.setTextContent(FormatearFecha(new Date()));
             elSignProp2.appendChild(oIdentifier21);
                         
-            Element elSignProp3 = docXml.createElement("SignatureProperty");
+            Element elSignProp3 = doc.createElement("SignatureProperty");
             elSignProp3.setAttribute("Id", "curpOrfcFirmante");
             elSignProp3.setAttribute("Target", "#DistributorASignature");
-            Element oIdentifier31 = docXml.createElement("curpOrfcFirmante");
+            Element oIdentifier31 = doc.createElement("curpOrfcFirmante");
             oIdentifier31.setTextContent(datosCertificado.getCurp());
             elSignProp3.appendChild(oIdentifier31);
                         
-            Element elSignProp4 = docXml.createElement("SignatureProperty");
+            Element elSignProp4 = doc.createElement("SignatureProperty");
             elSignProp4.setAttribute("Id", "nombreFirmante");
             elSignProp4.setAttribute("Target", "#DistributorASignature");
-            Element oIdentifier41 = docXml.createElement("nombreFirmante");
+            Element oIdentifier41 = doc.createElement("nombreFirmante");
             oIdentifier41.setTextContent(datosCertificado.getNombre());
             elSignProp4.appendChild(oIdentifier41);
             
@@ -186,39 +195,50 @@ public class Firma_XML {
             elementSignProp.appendChild(elSignProp2);
             elementSignProp.appendChild(elSignProp3);
             elementSignProp.appendChild(elSignProp4);
+                            
+            /* Object */
+            XMLSignatureFactory fac = XMLSignatureFactory.getInstance("DOM");
+            XMLObject object1 = fac.newXMLObject(Collections.singletonList(new DOMStructure(elementSignProp)),"gobmxEsquemaTramitacion" , null, null);
+                        
             
-            /*
-            System.out.println("Error aqui ->");
-            List xContent = new ArrayList();
-            xContent.add(elementSignProp);
-            XMLObject xObject = xmlSigFactory.newXMLObject(xContent, "gobmxEsquemaTramitacion", null, null);
-            
-            //*** Create XML Signature  
-            System.out.println("Error aqui ->");
-            List xObjects = new ArrayList();
-            xObjects.add(xObject);
-            XMLSignature xmlSignature = xmlSigFactory.newXMLSignature(signedInfo, kInfo, xObjects,null,null);
-            */
-            XMLSignature xmlSignature = xmlSigFactory.newXMLSignature(signedInfo, kInfo);  
+            //*** Create XML Signature
+            System.out.println("> XML Sign ");
+            XMLSignature xmlSignature = xmlSigFactory.newXMLSignature(signedInfo, kInfo, Collections.singletonList(object1), null,null);
+            //XMLSignature xmlSignature = xmlSigFactory.newXMLSignature(signedInfo, kInfo);  
             
             //*** Firmar documento
             xmlSignature.sign(domSignCtx);
             
+            // Obtner el digestvalue y el signaturevalue
+            byte[] bytesDigestValue = ref.getDigestValue();
+            stringDigestValue = Base64.getEncoder().encodeToString(bytesDigestValue);
+            
+            byte[] bytesSignatureValue = xmlSignature.getSignatureValue().getValue();
+            stringSignatureValue = Base64.getEncoder().encodeToString(bytesSignatureValue);
+                        
             
         } catch (MarshalException ex) {  
             System.out.println("Error: " + ex.getMessage() );
+            return null;
         } catch (XMLSignatureException ex) {  
             System.out.println("Error: " + ex.getMessage() );
+            return null;
         }catch (NoSuchAlgorithmException ex) {  
             System.out.println("Error: " + ex.getMessage() );
+            return null;
         } catch (InvalidAlgorithmParameterException ex) {  
             System.out.println("Error: " + ex.getMessage() );
+            return null;
         } catch (KeyException ex) {
             System.out.println("Error: " + ex.getMessage() );
+            return null;
         }catch(Exception err){
-                System.out.println("err: " + err.getMessage());
+            System.out.println("err: " + err.getMessage() + "\n "+  err.getStackTrace());
+            return null;
         } finally{
-            return docXml;
+            
+            return new XMLSign_Resp(docXml, stringDigestValue,stringSignatureValue);
+            
         }
 
     }

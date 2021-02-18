@@ -5,11 +5,30 @@
  */
 package MainPackage;
 
+import XML_Sign.DatosCertificado;
+import XML_Sign.Firma_XML;
+import XML_Sign.XMLSign_Resp;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.cert.CertificateException;
+import java.util.Base64;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Document;
+import pruebasencript.PruebasEncript;
 
 /**
  *
@@ -35,7 +54,6 @@ public class Main extends javax.swing.JFrame {
         tb_acuse = new javax.swing.JTextArea();
         tb_certi = new javax.swing.JTextField();
         tb_llave = new javax.swing.JTextField();
-        tb_pass = new javax.swing.JTextField();
         btn_cert = new javax.swing.JButton();
         btn_llave = new javax.swing.JButton();
         tb_doc1 = new javax.swing.JTextField();
@@ -45,10 +63,12 @@ public class Main extends javax.swing.JFrame {
         btn_firmar = new javax.swing.JButton();
         tb_msg = new javax.swing.JTextField();
         tb_digest = new javax.swing.JTextField();
-        tb_sign = new javax.swing.JTextField();
         jLabel7 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
         jLabel9 = new javax.swing.JLabel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        tb_sign = new javax.swing.JTextArea();
+        tb_pass = new javax.swing.JPasswordField();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
 
@@ -107,11 +127,21 @@ public class Main extends javax.swing.JFrame {
             }
         });
 
+        tb_msg.setEditable(false);
+
+        tb_digest.setEditable(false);
+
         jLabel7.setText("Mensaje");
 
         jLabel8.setText("Digest Value");
 
         jLabel9.setText("Signature Value");
+
+        tb_sign.setEditable(false);
+        tb_sign.setColumns(20);
+        tb_sign.setLineWrap(true);
+        tb_sign.setRows(5);
+        jScrollPane2.setViewportView(tb_sign);
 
         jMenu1.setText("Cargar Certificado");
         jMenu1.addActionListener(new java.awt.event.ActionListener() {
@@ -141,32 +171,36 @@ public class Main extends javax.swing.JFrame {
                     .addComponent(jLabel9))
                 .addGap(24, 24, 24)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(tb_sign)
-                    .addComponent(tb_digest)
-                    .addComponent(tb_msg)
-                    .addComponent(tb_pass)
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(tb_certi)
-                            .addComponent(tb_llave))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(btn_cert, javax.swing.GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
-                            .addComponent(btn_llave, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 448, Short.MAX_VALUE)
+                            .addComponent(tb_digest)
+                            .addComponent(tb_msg)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(tb_certi)
+                                    .addComponent(tb_llave))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(btn_cert, javax.swing.GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
+                                    .addComponent(btn_llave, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 589, Short.MAX_VALUE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(tb_doc1)
+                                    .addComponent(tb_doc2))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(btn_doc1, javax.swing.GroupLayout.DEFAULT_SIZE, 54, Short.MAX_VALUE)
+                                    .addComponent(btn_doc2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                            .addComponent(jScrollPane2))
+                        .addGap(19, 19, 19))
                     .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(tb_doc1, javax.swing.GroupLayout.DEFAULT_SIZE, 385, Short.MAX_VALUE)
-                            .addComponent(tb_doc2))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(btn_doc1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(btn_doc2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-                .addGap(19, 19, 19))
+                        .addComponent(tb_pass, javax.swing.GroupLayout.PREFERRED_SIZE, 198, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(btn_firmar)
-                .addGap(219, 219, 219))
+                .addGap(273, 273, 273))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -210,12 +244,12 @@ public class Main extends javax.swing.JFrame {
                     .addComponent(tb_digest, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel8))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(tb_sign, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel9))
-                .addGap(28, 28, 28)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel9)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 20, Short.MAX_VALUE)
                 .addComponent(btn_firmar)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
 
         pack();
@@ -322,6 +356,7 @@ public class Main extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTextArea tb_acuse;
     private javax.swing.JTextField tb_certi;
     private javax.swing.JTextField tb_digest;
@@ -329,22 +364,98 @@ public class Main extends javax.swing.JFrame {
     private javax.swing.JTextField tb_doc2;
     private javax.swing.JTextField tb_llave;
     private javax.swing.JTextField tb_msg;
-    private javax.swing.JTextField tb_pass;
-    private javax.swing.JTextField tb_sign;
+    private javax.swing.JPasswordField tb_pass;
+    private javax.swing.JTextArea tb_sign;
     // End of variables declaration//GEN-END:variables
 
     
     private void GenerarXMLFirmado(){
+        this.tb_msg.setText("");
         
-        //*** Cargar Certificado
+        Firma_XML xf = new Firma_XML();
         
-        //*** Cargar Llave Privada
+        try {
+            
+            //*** Cargar Certificado
+            DatosCertificado datos = xf.CargarDatosCetificado(this.tb_certi.getText());
+                       
+            
+            //*** Cargar Llave Privada
+            PrivateKey pkey = xf.CargarLlavePrivada(this.tb_llave.getText(), this.tb_pass.getText());
+
+            
+            //*** Cargar Acuse
+            String acuse = this.tb_acuse.getText();
+            String file1_Base64 = "";
+            String file2_Base64 = "";            
+            try{
+                File xf1 = new File(this.tb_doc1.getText());
+                file1_Base64 = Base64.getEncoder().encodeToString(Files.readAllBytes(xf1.toPath()));
+            }catch(Exception err){}
+            
+            try{
+                File xf2 = new File(this.tb_doc2.getText());
+                file2_Base64 = Base64.getEncoder().encodeToString(Files.readAllBytes(xf2.toPath()));
+            }catch(Exception err){}
+            
+
+            //*** Generar XML
+            String xmlR = xf.XML_Root(acuse, file1_Base64, file2_Base64);
+            
+
+            //*** Firmar XML
+            Document xmlFirmado = null;
+            String digestValue = "";
+            String signatureValue = "";
+            
+            XMLSign_Resp response = xf.FirmarXML(xmlR, pkey, datos);
+            if(response != null){
+                xmlFirmado =  response.XmlFirmado;
+                digestValue = response.DigestValue;
+                signatureValue = response.SignatureValue;
+            }
+            
+            this.tb_digest.setText(digestValue);
+            this.tb_sign.setText(signatureValue);
+                
+            
+            
+            //*** Guardar el documento en archivo
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Guardando XML firmado");   
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("Xml", "xml");
+            fileChooser.setFileFilter(filter);
         
-        //*** Cargar Acuse
-        
-        //*** Generar XML
-        
-        //*** Firmar XML
+            int userSelection = fileChooser.showSaveDialog(this); 
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File fileToSave = fileChooser.getSelectedFile();
+                
+                DOMSource source = new DOMSource(xmlFirmado);
+                FileWriter writer = new FileWriter(fileToSave);
+                StreamResult result = new StreamResult(writer);
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer;            
+                transformer = transformerFactory.newTransformer();
+                transformer.transform(source, result);
+            }
+            
+            
+            this.tb_msg.setText("Documento firmado");
+            
+            
+        } catch (FileNotFoundException ex) {
+            this.tb_msg.setText("error:" + ex.getMessage());
+        } catch (CertificateException ex) {
+            this.tb_msg.setText("error:" + ex.getMessage());
+        }catch (GeneralSecurityException ex) {
+            this.tb_msg.setText("error:" + ex.getMessage());
+        } catch (IOException ex) {
+            this.tb_msg.setText("error:" + ex.getMessage());
+        } catch (TransformerConfigurationException ex) {
+            this.tb_msg.setText("error:" + ex.getMessage());
+        }catch (TransformerException ex) {
+            this.tb_msg.setText("error:" + ex.getMessage());
+        }
         
     }
 
